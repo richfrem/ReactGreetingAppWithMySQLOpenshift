@@ -1,70 +1,87 @@
-# Getting Started with Create React App
+# React Greeting App with Oracle DB
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A full-stack web application that demonstrates integration between a React frontend and an Oracle database backend. Users can create and view greetings that are stored in an Oracle database.
 
-## Available Scripts
+## Application Interface
 
-In the project directory, you can run:
+Here's what the running application looks like:
 
-### `npm start`
+![Application Interface](docs/app-interface.png)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Project Structure
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+The project is organized into two main directories:
 
-### `npm test`
+- `frontend/` - React application built with TypeScript and Vite
+- `backend/` - Node.js server with Oracle database integration
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Prerequisites
 
-### `npm run build`
+- Node.js (v18 or higher)
+- Oracle Instant Client (v23.3.0 or higher)
+- Oracle Database
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Environment Setup
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. Create a `.env` file in the backend directory with the following variables:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```env
+ORACLE_USER=system
+ORACLE_PASSWORD=your_password
+ORACLE_CONNECT_STRING=localhost:1521/FREEPDB1
+```
 
-### `npm run eject`
+2. Install Oracle Instant Client for your platform (see backend/OracleSetup.md for details)
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Installation
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Backend
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+cd backend
+npm install
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Frontend
 
-## Learn More
+```bash
+cd frontend/client
+npm install
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Running the Application
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+1. Start the backend server:
 
-### Code Splitting
+```bash
+cd backend
+node server-oracle.js
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+2. Start the frontend development server:
 
-### Analyzing the Bundle Size
+```bash
+cd frontend/client
+npm run dev
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+The application will be available at:
 
-### Making a Progressive Web App
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3001
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Features
 
-### Advanced Configuration
+- Modern React frontend with TypeScript
+- Real-time greeting creation and display
+- Oracle database integration for persistent storage
+- RESTful API endpoints
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## API Endpoints
 
-### Deployment
+- GET `/api/greetings` - Retrieve all greetings
+- POST `/api/greetings` - Create a new greeting
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## Contributing
 
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
