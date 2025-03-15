@@ -45,3 +45,4 @@ logs
 # MySQL
 *.sql
 *.sql.gz
+k8s/mysql/manifests/mysql-secret.yaml.new
