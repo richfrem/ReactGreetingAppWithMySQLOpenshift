@@ -12,10 +12,10 @@ app.use(express.json());
 
 // MySQL connection
 const db = mysql.createConnection({
-  host: 'mysql-greetings',  // Service name in OpenShift
-  user: process.env.MYSQL_USER,         // From the secret
-  password: process.env.MYSQL_PASSWORD, // From the secret
-  database: process.env.MYSQL_DATABASE     // From the secret
+  host: process.env.DB_HOST || 'mysql-greetings',  // Service name in OpenShift
+  user: process.env.DB_USER,         // From the secret
+  password: process.env.DB_PASSWORD, // From the secret
+  database: process.env.DB_NAME     // From the secret
 });
 
 // Connect to MySQL
