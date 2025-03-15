@@ -1,0 +1,23 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: greeting-app
+  annotations:
+    openshift.io/host.generated: "true"
+    haproxy.router.openshift.io/timeout: "30s"
+spec:
+  host: frontend-5b7aa5-dev.apps.silver.devops.gov.bc.ca
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  to:
+    kind: Service
+    name: frontend
+    weight: 100
+  wildcardPolicy: None

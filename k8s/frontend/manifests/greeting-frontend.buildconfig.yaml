@@ -1,0 +1,37 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: greeting-app
+  annotations:
+    openshift.io/display-name: "React Frontend Build"
+spec:
+  source:
+    type: Binary
+    binary: {}
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile.frontend
+      buildArgs:
+        - name: BUILDPLATFORM
+          value: linux/amd64
+        - name: TARGETPLATFORM
+          value: linux/amd64
+  output:
+    to:
+      kind: ImageStreamTag
+      name: frontend:latest
+  triggers:
+    - type: ConfigChange
+    - type: ImageChange
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: frontend
+  labels:
+    app: frontend

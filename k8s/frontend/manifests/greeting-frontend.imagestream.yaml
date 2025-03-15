@@ -1,0 +1,25 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: greeting-app
+  annotations:
+    openshift.io/display-name: "React Frontend"
+    openshift.io/image.insecureRepository: "false"
+spec:
+  lookupPolicy:
+    local: true
+  tags:
+    - name: latest
+      annotations:
+        openshift.io/imported-from: frontend
+      from:
+        kind: DockerImage
+        name: image-registry.openshift-image-registry.svc:5000/5b7aa5-dev/frontend:latest
+      importPolicy:
+        scheduled: true
+      referencePolicy:
+        type: Source

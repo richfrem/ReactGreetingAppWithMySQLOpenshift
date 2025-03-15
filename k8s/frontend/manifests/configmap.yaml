@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: greeting-frontend-config
+  labels:
+    app: frontend
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: greeting-app
+data:
+  config.yaml: |
+    development:
+      # API Configuration
+      apiUrl: "https://greeting-backend-5b7aa5-dev.apps.silver.devops.gov.bc.ca:3001"
+      apiBasePath: "/api"
+      apiTimeout: 5000
+      apiRetries: 3
+
+      # Application Settings
+      appName: "Greeting App"
+      appVersion: "1.0.0"
+      defaultLanguage: "en"
+      supportedLanguages: ["en", "fr", "es"]
+
+      # UI Configuration
+      theme:
+        primaryColor: "#003366"
+        secondaryColor: "#FCBA19"
+        fontFamily: "BCSans, Noto Sans, Verdana, Arial, sans-serif"
+        spacing: "1rem"
+      
+      # Feature Flags
+      features:
+        enableMultiLanguage: true
+        enableDarkMode: true
+        enableNotifications: false
+
+      # Security Settings
+      security:
+        sessionTimeout: 3600
+        maxLoginAttempts: 3
+
+    production:
+      # API Configuration
+      apiUrl: "https://greeting-backend-5b7aa5-dev.apps.silver.devops.gov.bc.ca:3001"
+      apiBasePath: "/api"
+      apiTimeout: 10000
+      apiRetries: 3
+
+      # Application Settings
+      appName: "Greeting App"
+      appVersion: "1.0.0"
+      defaultLanguage: "en"
+      supportedLanguages: ["en", "fr", "es"]
+
+      # UI Configuration
+      theme:
+        primaryColor: "#003366"
+        secondaryColor: "#FCBA19"
+        fontFamily: "BCSans, Noto Sans, Verdana, Arial, sans-serif"
+        spacing: "1rem"
+      
+      # Feature Flags
+      features:
+        enableMultiLanguage: true
+        enableDarkMode: true
+        enableNotifications: true
+
+      # Security Settings
+      security:
+        sessionTimeout: 1800
+        maxLoginAttempts: 5

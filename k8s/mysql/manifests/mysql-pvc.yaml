@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-greetings-pvc
+  labels:
+    app: mysql-greetings
+    app.kubernetes.io/part-of: greeting-app
+    app.kubernetes.io/name: mysql-greetings
+    app.kubernetes.io/component: database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

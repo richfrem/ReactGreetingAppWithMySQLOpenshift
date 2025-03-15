@@ -45,17 +45,15 @@ function App() {
   return (
     <div className="app-container">
       <header className="bcgov-header">
-        <nav className="navbar navbar-expand-lg navbar-dark">
+        <nav className="navbar navbar-expand-lg">
           <div className="container">
-            <a className="navbar-brand" href="/">
+            <a className="navbar-brand" href="https://gov.bc.ca">
               <img
-                src="https://cdn.jsdelivr.net/gh/bcgov/bootstrap-theme@v1.0.0/dist/images/bcid-logo-rev-en.svg"
+                src="/images/bcid-logo-rev-en.svg"
                 alt="B.C. Government Logo"
-                height="44"
-                className="d-inline-block align-middle"
               />
-              <span className="bcgov-title h4 ml-3">Greetings App</span>
             </a>
+            <h1 className="bcgov-title">Greetings App</h1>
           </div>
         </nav>
       </header>
@@ -77,6 +75,7 @@ function App() {
                       setNewGreeting({ ...newGreeting, name: e.target.value })
                     }
                     required
+                    autoComplete="name"
                   />
                 </div>
                 <div className="form-group mb-3">
@@ -93,6 +92,7 @@ function App() {
                       })
                     }
                     required
+                    autoComplete="off"
                   />
                 </div>
                 <button type="submit" className="btn btn-primary">

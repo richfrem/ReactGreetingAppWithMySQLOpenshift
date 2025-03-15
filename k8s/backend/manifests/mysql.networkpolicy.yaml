@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mysql-allow-same-namespace
+  namespace: 5b7aa5-dev
+spec:
+  podSelector:
+    matchLabels:
+      app: mysql # This should match your MySQL pod labels
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: 5b7aa5-dev # This ensures only pods from the same namespace can connect
+      ports:
+        - protocol: TCP
+          port: 3306 # MySQL default port
+    - from: [] # Empty from array explicitly denies all other ingress traffic
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: 5b7aa5-dev # Allow egress only to same namespace
+    - to: [] # Empty to array explicitly denies all other egress traffic

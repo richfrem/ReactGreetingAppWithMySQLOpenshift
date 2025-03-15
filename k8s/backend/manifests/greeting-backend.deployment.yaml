@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: greeting-backend
+  labels:
+    app: greeting-backend
+    app.kubernetes.io/name: greeting-backend
+    app.kubernetes.io/part-of: greeting-app
+    app.kubernetes.io/component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: greeting-backend
+      app.kubernetes.io/name: greeting-backend
+      app.kubernetes.io/part-of: greeting-app
+  template:
+    metadata:
+      labels:
+        app: greeting-backend
+        app.kubernetes.io/name: greeting-backend
+        app.kubernetes.io/part-of: greeting-app
+        app.kubernetes.io/component: api
+    spec:
+      containers:
+        - name: greeting-backend
+          image: image-registry.apps.silver.devops.gov.bc.ca/5b7aa5-dev/greeting-backend:latest
+          ports:
+            - containerPort: 3001
+              protocol: TCP
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          env:
+            - name: MYSQL_HOST
+              value: "mysql-greetings"
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-greetings-secret
+                  key: database-user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-greetings-secret
+                  key: database-password
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-greetings-secret
+                  key: database-name

@@ -1,0 +1,18 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: greeting-backend
+  labels:
+    app: greeting-backend
+    app.kubernetes.io/name: greeting-backend
+    app.kubernetes.io/part-of: greeting-app
+spec:
+  port:
+    targetPort: http
+  to:
+    kind: Service
+    name: greeting-backend
+    weight: 100
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

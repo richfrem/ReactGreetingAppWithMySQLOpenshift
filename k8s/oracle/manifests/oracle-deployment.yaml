@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oracle-db
+  labels:
+    app: oracle-db
+    app.kubernetes.io/name: oracle-db
+    app.kubernetes.io/part-of: oracle-database
+    app.openshift.io/runtime: database
+  annotations:
+    app.openshift.io/connects-to: '[{"apiVersion":"apps/v1","kind":"Deployment","name":"frontend"}]'
+    openshift.io/display-name: "Oracle Database"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oracle-db
+  template:
+    metadata:
+      labels:
+        app: oracle-db
+        app.kubernetes.io/name: oracle-db
+        app.kubernetes.io/part-of: oracle-database
+        app.openshift.io/runtime: database
+    spec:
+      serviceAccountName: oracle-db-sa
+      containers:
+        - name: oracle-db
+          image: image-registry.openshift-image-registry.svc:5000/5b7aa5-dev/oracle-free-openshift:23c-fixed-v12
+          imagePullPolicy: Always
+          securityContext:
+            runAsUser: 1002850000
+            runAsGroup: 1002850000
+            runAsNonRoot: true
+          ports:
+            - containerPort: 1521
+              protocol: TCP
+          env:
+            - name: ORACLE_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: oracle-secret
+                  key: password
+          volumeMounts:
+            - name: oracle-data
+              mountPath: /opt/oracle/oradata
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "400m"
+            limits:
+              memory: "4Gi"
+              cpu: "450m"
+      volumes:
+        - name: oracle-data
+          persistentVolumeClaim:
+            claimName: oracle-pvc

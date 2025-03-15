@@ -1,0 +1,15 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: oracle-xe
+  labels:
+    app: oracle-database
+spec:
+  host: oracle-xe-5b7aa5-dev.apps.silver.devops.gov.bc.ca
+  port:
+    targetPort: oracle
+  to:
+    kind: Service
+    name: oracle-xe
+  tls:
+    termination: passthrough

@@ -12,10 +12,10 @@ app.use(express.json());
 
 // MySQL connection
 const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: '',
-  database: 'greeting_db'
+  host: 'mysql-greetings',  // Service name in OpenShift
+  user: process.env.MYSQL_USER,         // From the secret
+  password: process.env.MYSQL_PASSWORD, // From the secret
+  database: process.env.MYSQL_DATABASE     // From the secret
 });
 
 // Connect to MySQL
@@ -25,6 +25,23 @@ db.connect((err) => {
     return;
   }
   console.log('Connected to MySQL database');
+  
+  // Create table if it doesn't exist
+  const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS greetings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      greeting TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`;
+    
+  db.query(createTableQuery, (err) => {
+    if (err) {
+      console.error('Error creating table:', err);
+      return;
+    }
+    console.log('Greetings table ready');
+  });
 });
 
 // Routes
@@ -39,7 +56,16 @@ app.post('/api/greetings', (req, res) => {
       res.status(500).json({ error: 'Error saving greeting' });
       return;
     }
-    res.status(201).json({ id: results.insertId, name, greeting });
+    // Fetch the created record to get all fields including created_at
+    const selectQuery = 'SELECT * FROM greetings WHERE id = ?';
+    db.query(selectQuery, [results.insertId], (err, rows) => {
+      if (err) {
+        console.error('Error fetching created greeting:', err);
+        res.status(500).json({ error: 'Error fetching created greeting' });
+        return;
+      }
+      res.status(201).json(rows[0]);
+    });
   });
 });
 

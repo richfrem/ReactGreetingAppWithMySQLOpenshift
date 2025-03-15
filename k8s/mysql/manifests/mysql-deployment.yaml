@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-greetings
+  labels:
+    app: mysql-greetings
+    app.kubernetes.io/part-of: greeting-app
+    app.kubernetes.io/name: mysql-greetings
+    app.kubernetes.io/component: database
+spec:
+  selector:
+    matchLabels:
+      app: mysql-greetings
+      app.kubernetes.io/part-of: greeting-app
+      app.kubernetes.io/name: mysql-greetings
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql-greetings
+        app.kubernetes.io/part-of: greeting-app
+        app.kubernetes.io/name: mysql-greetings
+        app.kubernetes.io/component: database
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+              name: mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-greetings-secret
+                  key: root-password
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-greetings-secret
+                  key: database-name
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-greetings-secret
+                  key: database-user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-greetings-secret
+                  key: database-password
+          volumeMounts:
+            - name: mysql-persistent-storage
+              mountPath: /var/lib/mysql
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+      volumes:
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: mysql-greetings-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-greetings
+  labels:
+    app: mysql-greetings
+    app.kubernetes.io/part-of: greeting-app
+    app.kubernetes.io/name: mysql-greetings
+    app.kubernetes.io/component: database
+spec:
+  ports:
+    - port: 3306
+      targetPort: 3306
+      protocol: TCP
+      name: mysql
+  selector:
+    app: mysql-greetings
+  type: ClusterIP

@@ -1,6 +1,20 @@
 /* BC Gov Bootstrap Theme */
-@import url('https://fonts.googleapis.com/css?family=BCSans:300,400,500,700,900');
-@import url('https://bcgov.github.io/bootstrap-theme/dist/css/bootstrap-theme.min.css');
+@import './styles/bootstrap-theme.min.css';
+
+/* BC Gov Styles */
+@font-face {
+  font-family: 'BCSans';
+  font-style: normal;
+  font-weight: 400;
+  src: url('./fonts/BCSans-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'BCSans';
+  font-style: normal;
+  font-weight: 700;
+  src: url('./fonts/BCSans-Bold.woff2') format('woff2');
+}
 
 body {
   font-family: 'BCSans', 'Noto Sans', Verdana, Arial, sans-serif;
