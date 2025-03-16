@@ -2,15 +2,32 @@
 
 A React-based greeting application with MySQL backend, designed for deployment on OpenShift. This application allows users to create and view greetings in real-time, demonstrating a full-stack deployment on OpenShift with persistent storage.
 
+## Screenshot
+
+![Greetings App Screenshot](docs/images/greetings-app-screenshot.png)
+
+The application features the BC Government standard header design and provides a clean, user-friendly interface with:
+
+- A simple form to add new greetings with name and message fields
+- Real-time display of submitted greetings
+- Chronological listing with timestamps (e.g. "3/15/2025, 8:30:52 PM")
+- Responsive design that works across different devices
+- Consistent BC Government branding and styling
+
 ## Application Architecture
 
 ```mermaid
 graph TD
     subgraph OpenShift Platform
-        F[React Frontend<br>Nginx] --> B[Node.js Backend<br>Express]
+        subgraph Frontend[Frontend Pod]
+            R[React App] --> N[Nginx Proxy]
+            style R fill:#61DAFB,stroke:#000,stroke-width:2px
+            style N fill:#009639,stroke:#000,stroke-width:2px
+        end
+        N --> B[Node.js Backend<br>Express]
         B --> D[(MySQL Database)]
 
-        style F fill:#61DAFB,stroke:#000,stroke-width:2px
+        style Frontend fill:#f5f5f5,stroke:#000,stroke-width:2px
         style B fill:#68A063,stroke:#000,stroke-width:2px
         style D fill:#00758F,stroke:#000,stroke-width:2px
     end
@@ -500,12 +517,151 @@ oc rollout status deployment/<deployment-name>
 oc rollout restart deployment/<deployment-name>
 ```
 
+### Testing Backend Connectivity
+
+When the backend route is not exposed or you need to verify internal service communication, you can test the backend service directly from the frontend pod:
+
+```bash
+# Get the frontend pod name
+FRONTEND_POD=$(oc get pod -l app=frontend -o jsonpath='{.items[0].metadata.name}')
+
+# Test the backend service using curl from the frontend pod
+oc exec -it $FRONTEND_POD -- curl -v http://greeting-backend.5b7aa5-dev.svc.cluster.local:3001/api/greetings
+
+# Expected successful response will return a JSON array of greetings
+```
+
+This test helps verify:
+
+- DNS resolution of the backend service
+- Network connectivity between frontend and backend
+- Backend service functionality
+- Proper configuration of the service endpoint
+
+If this test succeeds but the frontend application cannot connect, check the Nginx configuration in the frontend ConfigMap.
+
+## Troubleshooting Guide
+
+### Frontend Nginx Proxy Issues
+
+If you encounter issues with the frontend pod unable to connect to the backend service, particularly with DNS resolution errors like "host not found in upstream", follow these troubleshooting steps:
+
+1. Check Pod Status and Logs:
+
+```bash
+# Get frontend pod status
+oc get pods | grep frontend
+
+# Check pod logs for specific errors
+oc logs <frontend-pod-name>
+```
+
+2. DNS Resolution Issues:
+
+   - If you see errors like "host not found in upstream 'greeting-backend'", this indicates DNS resolution problems
+   - Try these solutions in order:
+
+   a. Use Full DNS Name:
+
+   ```nginx
+   location /api/ {
+       resolver 10.96.0.10 valid=10s;
+       proxy_pass http://greeting-backend.5b7aa5-dev.svc.cluster.local:3001;
+   }
+   ```
+
+   b. Use Service ClusterIP (temporary solution):
+
+   ```nginx
+   location /api/ {
+       proxy_pass http://<service-cluster-ip>:3001;
+   }
+   ```
+
+3. Test Backend Connectivity:
+
+   - Test the connection from within the frontend pod:
+
+   ```bash
+   # Test API endpoint through Nginx
+   oc exec <frontend-pod-name> -- curl -v http://localhost:8080/api/greetings
+
+   # Get backend service details
+   oc get svc greeting-backend
+   ```
+
+4. Common Solutions:
+   - Verify the backend service exists and has endpoints
+   - Check network policies allow communication between frontend and backend
+   - Ensure the backend service port matches the proxy_pass port
+   - Verify the backend service is in the same namespace
+
+Remember: Using ClusterIP directly in the Nginx configuration is not recommended for production as it bypasses Kubernetes service discovery, but it can be useful for temporary troubleshooting.
+
 ## Environment Variables
 
 ### Frontend
 
 - `REACT_APP_API_URL`: Backend API URL
 - `PORT`: Frontend service port (default: 3000)
+
+## Troubleshooting Guide
+
+### Frontend Nginx Proxy Issues
+
+If you encounter issues with the frontend pod unable to connect to the backend service, particularly with DNS resolution errors like "host not found in upstream", follow these troubleshooting steps:
+
+1. Check Pod Status and Logs:
+
+```bash
+# Get frontend pod status
+oc get pods | grep frontend
+
+# Check pod logs for specific errors
+oc logs <frontend-pod-name>
+```
+
+2. DNS Resolution Issues:
+
+   - If you see errors like "host not found in upstream 'greeting-backend'", this indicates DNS resolution problems
+   - Try these solutions in order:
+
+   a. Use Full DNS Name:
+
+   ```nginx
+   location /api/ {
+       resolver 10.96.0.10 valid=10s;
+       proxy_pass http://greeting-backend.5b7aa5-dev.svc.cluster.local:3001;
+   }
+   ```
+
+   b. Use Service ClusterIP (temporary solution):
+
+   ```nginx
+   location /api/ {
+       proxy_pass http://<service-cluster-ip>:3001;
+   }
+   ```
+
+3. Test Backend Connectivity:
+
+   - Test the connection from within the frontend pod:
+
+   ```bash
+   # Test API endpoint through Nginx
+   oc exec <frontend-pod-name> -- curl -v http://localhost:8080/api/greetings
+
+   # Get backend service details
+   oc get svc greeting-backend
+   ```
+
+4. Common Solutions:
+   - Verify the backend service exists and has endpoints
+   - Check network policies allow communication between frontend and backend
+   - Ensure the backend service port matches the proxy_pass port
+   - Verify the backend service is in the same namespace
+
+Remember: Using ClusterIP directly in the Nginx configuration is not recommended for production as it bypasses Kubernetes service discovery, but it can be useful for temporary troubleshooting.
 
 ## Security Considerations
 
@@ -539,3 +695,312 @@ oc rollout restart deployment/<deployment-name>
 ## License
 
 [Add your license information here]
+
+### Nginx Configuration and Testing
+
+The frontend uses Nginx as a reverse proxy to handle API requests and serve static files. The configuration is managed through a ConfigMap in `k8s/frontend/manifests/nginx-config.yaml`.
+
+#### Key Configuration Areas
+
+1. **Static File Serving**:
+
+```nginx
+location / {
+    try_files $uri /index.html;
+    add_header Cache-Control "no-store, no-cache, must-revalidate";
+}
+```
+
+2. **API Proxy Configuration**:
+
+```nginx
+location /api/ {
+    rewrite ^/api/(.*) /api/$1 break;
+    proxy_pass http://greeting-backend:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+}
+```
+
+3. **CORS Headers**:
+
+```nginx
+add_header 'Access-Control-Allow-Origin' '*' always;
+add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
+add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+```
+
+#### Testing Nginx Configuration
+
+1. **Verify Configuration Syntax**:
+
+```bash
+# Get frontend pod name
+FRONTEND_POD=$(oc get pod -l app=frontend -o jsonpath='{.items[0].metadata.name}')
+
+# Check Nginx configuration
+oc exec $FRONTEND_POD -- nginx -t
+```
+
+2. **Test Static File Serving**:
+
+```bash
+# Test index.html
+oc exec $FRONTEND_POD -- curl -I http://localhost:8080/
+
+# Test static asset (replace with actual asset path)
+oc exec $FRONTEND_POD -- curl -I http://localhost:8080/static/js/main.js
+```
+
+3. **Test API Proxying**:
+
+```bash
+# Test API endpoint through Nginx
+oc exec $FRONTEND_POD -- curl -v http://localhost:8080/api/greetings
+
+# Test API endpoint directly (bypass Nginx)
+oc exec $FRONTEND_POD -- curl -v http://greeting-backend:3001/api/greetings
+```
+
+4. **Test CORS Headers**:
+
+```bash
+# Test OPTIONS request (CORS preflight)
+oc exec $FRONTEND_POD -- curl -X OPTIONS -I http://localhost:8080/api/greetings \
+  -H 'Origin: http://example.com' \
+  -H 'Access-Control-Request-Method: POST'
+```
+
+#### Common Nginx Issues and Solutions
+
+1. **502 Bad Gateway**:
+
+   - Check if backend service is running: `oc get pods -l app=greeting-backend`
+   - Verify service DNS resolution: `oc exec $FRONTEND_POD -- nslookup greeting-backend`
+   - Check backend service port matches proxy_pass
+
+2. **504 Gateway Timeout**:
+
+   - Increase proxy timeout settings:
+
+   ```nginx
+   proxy_connect_timeout 60s;
+   proxy_send_timeout 60s;
+   proxy_read_timeout 60s;
+   ```
+
+3. **DNS Resolution Issues**:
+
+   - Use full service DNS name: `greeting-backend.5b7aa5-dev.svc.cluster.local`
+   - Add resolver directive: `resolver kube-dns.kube-system.svc.cluster.local valid=10s;`
+   - Temporarily use ClusterIP (not recommended for production)
+
+4. **CORS Issues**:
+   - Verify CORS headers in response: `curl -v -H "Origin: http://example.com" http://localhost:8080/api/greetings`
+   - Check if headers are added for all response codes
+   - Ensure OPTIONS requests are handled correctly
+
+#### Nginx Logging and Debugging
+
+1. **Access Logs**:
+
+```bash
+# View access logs
+oc exec $FRONTEND_POD -- tail -f /var/log/nginx/access.log
+```
+
+2. **Error Logs**:
+
+```bash
+# View error logs
+oc exec $FRONTEND_POD -- tail -f /var/log/nginx/error.log
+```
+
+3. **Debug Mode**:
+
+   - Enable debug logging in nginx.conf:
+
+   ```nginx
+   error_log /var/log/nginx/error.log debug;
+   ```
+
+4. **Request Tracing**:
+   - Add request ID tracking:
+   ```nginx
+   add_header X-Request-ID $request_id;
+   proxy_set_header X-Request-ID $request_id;
+   ```
+
+Remember to restart Nginx after configuration changes:
+
+```bash
+oc exec $FRONTEND_POD -- nginx -s reload
+```
+
+## GitHub Workflow
+
+### Pushing Updates
+
+1. **Update Local Repository**:
+
+```bash
+# Ensure you're on the main branch
+git checkout main
+
+# Pull latest changes
+git pull origin main
+
+# Create a feature branch
+git checkout -b feature/your-feature-name
+```
+
+2. **Make and Test Changes**:
+
+```bash
+# Stage changes
+git add .
+
+# Create a descriptive commit
+git commit -m "feat: description of your changes"
+```
+
+3. **Update OpenShift Configurations**:
+
+   - If you've modified Kubernetes/OpenShift configurations:
+
+   ```bash
+   # Test configurations locally
+   oc apply --dry-run=client -f k8s/frontend/manifests/
+   oc apply --dry-run=client -f k8s/backend/manifests/
+   ```
+
+4. **Push Changes**:
+
+```bash
+# Push your feature branch
+git push origin feature/your-feature-name
+```
+
+5. **Create Pull Request**:
+
+   - Go to GitHub repository
+   - Click "Compare & pull request"
+   - Fill in PR template:
+
+     ```markdown
+     ## Description
+
+     Brief description of changes
+
+     ## Type of Change
+
+     - [ ] Bug fix
+     - [ ] New feature
+     - [ ] Configuration update
+     - [ ] Documentation update
+
+     ## Testing
+
+     - [ ] Unit tests updated
+     - [ ] Integration tests updated
+     - [ ] Manual testing performed
+
+     ## OpenShift Impact
+
+     - [ ] Deployment changes
+     - [ ] Configuration changes
+     - [ ] Resource requirements changes
+     ```
+
+### Version Control Best Practices
+
+1. **Commit Messages**:
+
+   - Use conventional commits format:
+     ```
+     feat: add new feature
+     fix: resolve bug
+     docs: update documentation
+     chore: update dependencies
+     refactor: code improvements
+     test: add or modify tests
+     ```
+
+2. **Branch Strategy**:
+
+   - `main`: Production-ready code
+   - `feature/*`: New features
+   - `fix/*`: Bug fixes
+   - `docs/*`: Documentation updates
+   - `release/*`: Release preparation
+
+3. **Code Review Guidelines**:
+
+   - Review OpenShift configurations carefully
+   - Check for sensitive information
+   - Verify environment variables
+   - Ensure documentation is updated
+   - Test deployment steps
+
+4. **Post-Merge Actions**:
+
+```bash
+# Switch back to main
+git checkout main
+
+# Pull merged changes
+git pull origin main
+
+# Delete local feature branch
+git branch -d feature/your-feature-name
+
+# Delete remote feature branch (optional)
+git push origin --delete feature/your-feature-name
+```
+
+### Deployment After Push
+
+1. **Build and Push Images**:
+
+```bash
+# Build and push frontend
+docker build -f Dockerfile.frontend -t frontend:latest .
+docker tag frontend:latest image-registry.apps.silver.devops.gov.bc.ca/5b7aa5-dev/greeting-frontend:latest
+docker push image-registry.apps.silver.devops.gov.bc.ca/5b7aa5-dev/greeting-frontend:latest
+
+# Build and push backend
+docker build -f Dockerfile.backend -t backend:latest .
+docker tag backend:latest image-registry.apps.silver.devops.gov.bc.ca/5b7aa5-dev/greeting-backend:latest
+docker push image-registry.apps.silver.devops.gov.bc.ca/5b7aa5-dev/greeting-backend:latest
+```
+
+2. **Apply Configuration Changes**:
+
+```bash
+# Apply backend changes
+oc apply -f k8s/backend/manifests/
+
+# Apply frontend changes
+oc apply -f k8s/frontend/manifests/
+
+# Restart deployments if needed
+oc rollout restart deployment/frontend
+oc rollout restart deployment/greeting-backend
+```
+
+3. **Verify Deployment**:
+
+```bash
+# Check pod status
+oc get pods
+
+# Check logs for errors
+oc logs deployment/frontend
+oc logs deployment/greeting-backend
+
+# Test the application
+curl -v https://$(oc get route frontend -o jsonpath='{.spec.host}')/api/greetings
+```

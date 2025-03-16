@@ -48,16 +48,11 @@ RUN mkdir -p /tmp/nginx/cache/client_temp \
 
 # Copy nginx configuration
 COPY k8s/frontend/manifests/nginx.conf /etc/nginx/nginx.conf
-COPY k8s/frontend/manifests/default.conf /etc/nginx/conf.d/default.conf
 
 # Remove default nginx configuration to prevent conflicts
 RUN rm -f /etc/nginx/conf.d/default.conf.template && \
     rm -f /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh && \
     rm -f /docker-entrypoint.d/20-envsubst-on-templates.sh
-
-# Copy and set up entrypoint script
-COPY k8s/frontend/manifests/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
 
 # Expose port 8080 (OpenShift preferred)
 EXPOSE 8080
@@ -65,4 +60,4 @@ EXPOSE 8080
 # Run nginx with non-root user (OpenShift requirement)
 USER nginx
 
-ENTRYPOINT ["/docker-entrypoint.sh"] 
+CMD ["nginx", "-g", "daemon off;"] 

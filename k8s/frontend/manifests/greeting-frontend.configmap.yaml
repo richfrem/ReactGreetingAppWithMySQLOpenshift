@@ -9,9 +9,8 @@ metadata:
 data:
   config.yaml: |
     development:
-      # API Configuration
-      apiUrl: "https://greeting-backend-5b7aa5-dev.apps.silver.devops.gov.bc.ca:3001"
-      apiBasePath: "/api"
+      # API Configuration - uses nginx proxy, see nginx-config.yaml
+      apiUrl: "/api"
       apiTimeout: 5000
       apiRetries: 3
 
@@ -41,8 +40,7 @@ data:
 
     production:
       # API Configuration
-      apiUrl: "https://greeting-backend-5b7aa5-dev.apps.silver.devops.gov.bc.ca:3001"
-      apiBasePath: "/api"
+      apiUrl: "/api"
       apiTimeout: 10000
       apiRetries: 3
 

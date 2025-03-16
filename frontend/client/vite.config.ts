@@ -26,8 +26,7 @@ export default defineConfig(({ mode }) => ({
     'import.meta.env.CONFIG': JSON.stringify(`
 development:
   # API Configuration
-  apiUrl: "https://greeting-backend-5b7aa5-dev.apps.silver.devops.gov.bc.ca"
-  apiBasePath: "/api"
+  apiUrl: "https://greeting-backend-5b7aa5-dev.apps.silver.devops.gov.bc.ca/api"
   apiTimeout: 5000
   apiRetries: 3
 
@@ -57,8 +56,7 @@ development:
 
 production:
   # API Configuration
-  apiUrl: "https://greeting-backend-5b7aa5-dev.apps.silver.devops.gov.bc.ca"
-  apiBasePath: "/api"
+  apiUrl: "https://greeting-backend-5b7aa5-dev.apps.silver.devops.gov.bc.ca/api"
   apiTimeout: 10000
   apiRetries: 3
 

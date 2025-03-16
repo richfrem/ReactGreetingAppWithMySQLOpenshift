@@ -6,7 +6,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: greeting-backend # This should match your backend pod labels
+      app: greeting-backend
   policyTypes:
     - Ingress
     - Egress
@@ -14,14 +14,22 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: 5b7aa5-dev # This ensures only pods from the same namespace can connect
+              kubernetes.io/metadata.name: 5b7aa5-dev
+          podSelector:
+            matchLabels:
+              app: frontend
       ports:
         - protocol: TCP
-          port: 3001 # The port your backend service is running on
-    - from: [] # Empty from array explicitly denies all other ingress traffic
+          port: 3001
+    - from: [] # Explicitly deny all other traffic
+      ports: [] # Block all other ports
   egress:
     - to:
-        - namespaceSelector:
+        - podSelector:
             matchLabels:
-              kubernetes.io/metadata.name: 5b7aa5-dev # Allow egress only to same namespace
-    - to: [] # Empty to array explicitly denies all other egress traffic
+              app: mysql-greetings
+      ports:
+        - protocol: TCP
+          port: 3306
+    - to: [] # Explicitly deny all other traffic
+      ports: [] # Block all ports

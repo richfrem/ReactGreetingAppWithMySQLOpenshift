@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { Greeting, NewGreeting } from '../types';
+import config from '../config';
 
-//const API_URL = 'http://localhost:3001/api';
-const API_URL = 'https://greeting-backend-5b7aa5-dev.apps.silver.devops.gov.bc.ca/api';
+const env = (process.env.NODE_ENV || 'development') as 'development' | 'production';
+const API_URL = config[env].apiUrl;
 
 export const getGreetings = async (): Promise<Greeting[]> => {
   const response = await axios.get(`${API_URL}/greetings`);

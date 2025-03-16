@@ -1,7 +1,0 @@
-development:
-  apiUrl: "http://localhost:3001"
-  apiBasePath: "/api"
-
-production:
-  apiUrl: "http://greeting-backend:3001"
-  apiBasePath: "/api"

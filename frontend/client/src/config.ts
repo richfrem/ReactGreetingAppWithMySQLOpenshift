@@ -1,6 +1,5 @@
 export interface Config {
   apiUrl: string;
-  apiBasePath: string;
   apiTimeout: number;
   apiRetries: number;
 }
@@ -12,17 +11,15 @@ export interface AppConfig {
 
 const config: AppConfig = {
   development: {
-    apiUrl: "https://greeting-backend-5b7aa5-dev.apps.silver.devops.gov.bc.ca:3001",
-    apiBasePath: "/api",
+    apiUrl: "/api",
     apiTimeout: 5000,
     apiRetries: 3
   },
   production: {
-    apiUrl: "https://greeting-backend-5b7aa5-dev.apps.silver.devops.gov.bc.ca:3001",
-    apiBasePath: "/api",
+    apiUrl: "/api",
     apiTimeout: 10000,
     apiRetries: 3
   }
 };
 
-export default config; 
+export default config;
