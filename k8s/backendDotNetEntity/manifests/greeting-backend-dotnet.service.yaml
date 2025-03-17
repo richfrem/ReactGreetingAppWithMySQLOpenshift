@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: greeting-backend-dotnet
+  labels:
+    app: greeting-backend-dotnet
+    app.kubernetes.io/name: greeting-backend-dotnet
+    app.kubernetes.io/part-of: greeting-app
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/runtime: dotnet
+spec:
+  ports:
+    - port: 3010
+      targetPort: 3010
+      protocol: TCP
+      name: http
+  selector:
+    app: greeting-backend-dotnet
+    app.kubernetes.io/name: greeting-backend-dotnet
+    app.kubernetes.io/part-of: greeting-app
+  type: ClusterIP

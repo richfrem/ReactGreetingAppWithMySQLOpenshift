@@ -1,0 +1,32 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "backendDotNetEntity", "backendDotNetEntity", "{F09FF671-0C87-4B9F-09DA-66F5083CEEE4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8C775D3F-643F-5178-E4A6-6F737AEB05F0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GreetingApi", "backendDotNetEntity\src\GreetingApi\GreetingApi.csproj", "{4EC6CCEE-C3F9-F7AB-FE21-F0149B825A7E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4EC6CCEE-C3F9-F7AB-FE21-F0149B825A7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EC6CCEE-C3F9-F7AB-FE21-F0149B825A7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EC6CCEE-C3F9-F7AB-FE21-F0149B825A7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EC6CCEE-C3F9-F7AB-FE21-F0149B825A7E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8C775D3F-643F-5178-E4A6-6F737AEB05F0} = {F09FF671-0C87-4B9F-09DA-66F5083CEEE4}
+		{4EC6CCEE-C3F9-F7AB-FE21-F0149B825A7E} = {8C775D3F-643F-5178-E4A6-6F737AEB05F0}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7FC83E1A-B3CC-4F1E-B68D-4837F65C39FE}
+	EndGlobalSection
+EndGlobal

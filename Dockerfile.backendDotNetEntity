@@ -1,0 +1,17 @@
+FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["backendDotNetEntity/src/GreetingApi/GreetingApi.csproj", "GreetingApi/"]
+RUN dotnet restore "GreetingApi/GreetingApi.csproj"
+COPY ["backendDotNetEntity/src/GreetingApi/", "GreetingApi/"]
+WORKDIR "/src/GreetingApi"
+RUN dotnet build "GreetingApi.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "GreetingApi.csproj" -c Release -o /app/publish
+
+FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+EXPOSE 3010
+ENV ASPNETCORE_URLS=http://+:3010
+ENTRYPOINT ["dotnet", "GreetingApi.dll"] 

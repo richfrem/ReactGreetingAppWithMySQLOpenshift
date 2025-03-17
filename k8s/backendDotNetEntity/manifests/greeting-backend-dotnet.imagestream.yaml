@@ -1,0 +1,22 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: greeting-backend-dotnet
+  labels:
+    app: greeting-backend-dotnet
+    app.kubernetes.io/name: greeting-backend-dotnet
+    app.kubernetes.io/part-of: greeting-app
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/runtime: dotnet
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+    - name: latest
+      from:
+        kind: DockerImage
+        name: image-registry.apps.silver.devops.gov.bc.ca/5b7aa5-dev/greeting-backend-dotnet:latest
+      importPolicy:
+        scheduled: true
+      referencePolicy:
+        type: Local

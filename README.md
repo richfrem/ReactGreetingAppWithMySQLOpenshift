@@ -23,18 +23,120 @@ graph TD
             R[React App] --> N[Nginx Proxy]
             style R fill:#61DAFB,stroke:#000,stroke-width:2px
             style N fill:#009639,stroke:#000,stroke-width:2px
+
+            subgraph Nginx Config[Nginx Configuration]
+                NJS["/api/* → 10.98.142.109:3001<br>Node.js Backend"]
+                NDOT["/api-dotnet/* → 10.98.118.147:3010<br>.NET Backend"]
+            end
+
+            N --> NJS
+            N --> NDOT
         end
-        N --> B[Node.js Backend<br>Express]
-        B --> D[(MySQL Database)]
+
+        NJS --> B1[Node.js Backend<br>Express<br>Port 3001]
+        NDOT --> B2[.NET Backend<br>Entity Framework<br>Port 3010]
+
+        B1 --> |"10.98.187.196:3306"| D[(MySQL Database)]
+        B2 --> |"10.98.187.196:3306"| D
 
         style Frontend fill:#f5f5f5,stroke:#000,stroke-width:2px
-        style B fill:#68A063,stroke:#000,stroke-width:2px
+        style B1 fill:#68A063,stroke:#000,stroke-width:2px
+        style B2 fill:#512BD4,stroke:#000,stroke-width:2px
         style D fill:#00758F,stroke:#000,stroke-width:2px
+        style Nginx Config fill:#f5f5f5,stroke:#000,stroke-width:1px
     end
 
     classDef platform fill:#DE2E21,stroke:#000,stroke-width:2px
     class OpenShift platform
 ```
+
+### Service IP Configuration
+
+Due to DNS resolution issues in OpenShift, we need to use service IPs directly. Here's how to get and configure the service IPs:
+
+1. **Get Service IPs**:
+
+```bash
+# Get all service IPs
+oc get svc
+NAME                    CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+greeting-backend       10.98.142.109    <none>        3001/TCP   28h
+greeting-backend-dotnet 10.98.118.147   <none>        3010/TCP   8h
+mysql-greetings        10.98.187.196    <none>        3306/TCP   28h
+```
+
+2. **Update Nginx Configuration**:
+
+```nginx
+# Node.js backend proxy (using direct IP)
+location /api/ {
+    proxy_pass http://10.98.142.109:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+}
+
+# .NET backend proxy (using direct IP)
+location /api-dotnet/ {
+    proxy_pass http://10.98.118.147:3010;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+}
+```
+
+3. **Testing Backend Connectivity**:
+
+```bash
+# Test Node.js backend using IP
+oc exec frontend-pod -- curl -v http://10.98.142.109:3001/api/greetings
+
+# Test .NET backend using IP
+oc exec frontend-pod -- curl -v http://10.98.118.147:3010/api/greetings
+
+# Test MySQL connectivity from Node.js backend
+oc exec nodejs-backend-pod -- curl -v telnet://10.98.187.196:3306
+
+# Test MySQL connectivity from .NET backend
+oc exec dotnet-backend-pod -- curl -v telnet://10.98.187.196:3306
+```
+
+4. **Update Backend Database Configurations**:
+
+For Node.js backend (`backend/config.js`):
+
+```javascript
+module.exports = {
+  database: {
+    host: "10.98.187.196", // Direct MySQL IP
+    port: 3306,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  },
+};
+```
+
+For .NET backend (`appsettings.json`):
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=10.98.187.196;Port=3306;Database=greeting_db;User=greetinguser;Password=greetingpass;"
+  }
+}
+```
+
+**Note**: When service IPs change (e.g., after service recreation), you'll need to:
+
+1. Get the new service IPs using `oc get svc`
+2. Update the Nginx configuration with new IPs
+3. Update backend configurations if necessary
+4. Restart affected pods to apply changes
 
 ## Features
 
@@ -43,18 +145,104 @@ graph TD
 - Persistent storage using MySQL database
 - Secure communication between components
 - OpenShift-native deployment with auto-scaling support
+- Multiple backend implementations:
+  - Node.js/Express REST API
+  - .NET 8.0 Entity Framework Core REST API
+- API selection in frontend UI
+- ISO 8601 date format support
+- Secure internal communication through network policies
+
+## Frontend Features
+
+### API Selection
+
+The frontend application allows users to switch between the Node.js and .NET backends:
+
+1. **Selection Interface**
+
+   - Radio button group for API selection
+   - Visual feedback of current selection
+   - Immediate switching between backends
+
+2. **Implementation Details**
+
+   - Uses React state management for API selection
+   - Dynamic endpoint configuration based on selection
+   - Handles different date formats from each backend
+   - Maintains consistent UI regardless of backend
+
+3. **Configuration**
+
+   ```typescript
+   // API endpoints configuration
+   const API_ENDPOINTS = {
+     nodejs: "/api/greetings", // Node.js backend endpoint
+     dotnet: "/api-dotnet/greetings", // .NET backend endpoint
+   };
+   ```
+
+4. **Network Configuration**
+   - Nginx proxy routes requests to appropriate backend
+   - Network policies allow communication to both backends
+   - Health checks ensure backend availability
+
+### Nginx Proxy Configuration
+
+The frontend's Nginx configuration handles routing to both backends:
+
+```nginx
+# Node.js backend proxy
+location /api/ {
+    proxy_pass http://greeting-backend:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+}
+
+# .NET backend proxy
+location /api-dotnet/ {
+    proxy_pass http://greeting-backend-dotnet:3010;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+}
+```
 
 ## Project Structure
 
 ```
 .
-├── backend/         # Node.js backend service
-├── frontend/        # React frontend application
-├── k8s/            # Kubernetes/OpenShift configuration files
-│   ├── backend/    # Backend deployment configs
-│   ├── frontend/   # Frontend deployment configs
-│   └── mysql/      # MySQL deployment configs
-└── docs/           # Project documentation
+├── backend/              # Node.js backend service
+│   ├── src/             # Source code
+│   ├── tests/           # Unit tests
+│   └── Dockerfile       # Node.js backend container build
+├── backendDotNetEntity/ # .NET Entity Framework backend service
+│   ├── src/            # Source code
+│   │   ├── GreetingApi/      # .NET API project
+│   │   │   ├── Controllers/  # API endpoints
+│   │   │   ├── Models/       # Entity models
+│   │   │   └── Data/         # Database context
+│   │   └── GreetingApi.Tests/ # .NET API tests
+│   └── Dockerfile      # .NET backend container build
+├── frontend/           # React frontend application
+│   ├── client/        # React application source
+│   │   ├── src/      # Source code
+│   │   └── public/   # Static assets
+│   └── Dockerfile    # Frontend container build
+├── k8s/               # Kubernetes/OpenShift configuration files
+│   ├── backend/      # Node.js backend deployment configs
+│   │   └── manifests/
+│   ├── backendDotNetEntity/ # .NET backend deployment configs
+│   │   └── manifests/
+│   ├── frontend/    # Frontend deployment configs
+│   │   └── manifests/
+│   └── mysql/       # MySQL deployment configs
+│       └── manifests/
+└── docs/            # Project documentation
 ```
 
 ## Prerequisites
@@ -63,8 +251,10 @@ graph TD
 
 - OpenShift CLI (`oc`) v4.x or higher
 - Docker v20.x or higher
-- Node.js v18.x or higher
-- npm v9.x or higher
+- Node.js v18.x or higher (for Node.js backend)
+- npm v9.x or higher (for Node.js backend)
+- .NET SDK 8.0 or higher (for .NET backend)
+- Docker Buildx for multi-architecture builds
 
 ### Access Requirements
 
@@ -78,6 +268,7 @@ graph TD
 - Minimum 2 CPU cores available
 - Minimum 4GB RAM available
 - Minimum 1GB storage for MySQL PVC
+- AMD64 architecture support for .NET backend deployment
 
 ## Local Development
 
@@ -285,7 +476,7 @@ oc exec -it $POD_NAME -- mysql -u greetinguser -pgreetingpass -e "USE greeting_d
 
 ### 3. Deploy Backend API
 
-#### A. Build and Push Image
+#### A. Node.js Backend Deployment
 
 ```bash
 # Build backend
@@ -294,80 +485,67 @@ docker tag backend:latest image-registry.apps.silver.devops.gov.bc.ca/5b7aa5-dev
 docker push image-registry.apps.silver.devops.gov.bc.ca/5b7aa5-dev/greeting-backend:latest
 ```
 
-#### B. Deploy Resources
+#### B. .NET Backend Deployment
+
+1. Build and Push Image:
 
 ```bash
-# Apply backend configurations
-oc apply -f k8s/backend/manifests/
+# Navigate to .NET backend directory
+cd backendDotNetEntity
 
-# Verify deployment
-oc get pods,svc,route -l app.kubernetes.io/name=greeting-backend
+# Build .NET backend (ensure targeting linux/amd64)
+docker buildx build --platform linux/amd64 -t greeting-backend-dotnet:latest .
+docker tag greeting-backend-dotnet:latest image-registry.apps.silver.devops.gov.bc.ca/5b7aa5-dev/greeting-backend-dotnet:latest
+docker push image-registry.apps.silver.devops.gov.bc.ca/5b7aa5-dev/greeting-backend-dotnet:latest
 ```
 
-#### C. Environment Variables
+2. Deploy Resources:
 
-The backend service uses the following environment variables:
+```bash
+# Apply .NET backend configurations
+oc apply -f k8s/backendDotNetEntity/manifests/
 
-- `DB_HOST`: MySQL host (default: mysql-greetings)
-- `DB_USER`: Database user (from mysql-greetings-secret)
-- `DB_PASSWORD`: Database password (from mysql-greetings-secret)
-- `DB_NAME`: Database name (from mysql-greetings-secret)
-- `PORT`: Backend service port (default: 3001)
+# Verify deployment
+oc get pods,svc -l app=greeting-backend-dotnet
+```
 
-#### D. API Endpoints
+3. Environment Variables:
 
-The backend service exposes the following REST endpoints:
+The .NET backend service uses the following environment variables:
 
-1. **Health Check**
+- `ConnectionStrings__DefaultConnection`: MySQL connection string
+- `ASPNETCORE_URLS`: Backend service URLs (default: http://\*:3010)
 
-   - Method: `GET`
-   - Path: `/`
-   - Response: `200 OK`
-     ```json
-     {
-       "status": "ok",
-       "timestamp": "ISO-8601 timestamp"
-     }
-     ```
+4. API Endpoints:
 
-2. **Create Greeting**
+The .NET backend service exposes the following REST endpoints:
 
-   - Method: `POST`
-   - Path: `/api/greetings`
-   - Content-Type: `application/json`
-   - Request Body:
-     ```json
-     {
-       "name": "string",
-       "greeting": "string"
-     }
-     ```
-   - Response: `201 Created`
-     ```json
-     {
-       "id": "number",
-       "name": "string",
-       "greeting": "string",
-       "created_at": "timestamp"
-     }
-     ```
+- **Health Check**
 
-3. **Get All Greetings**
-   - Method: `GET`
-   - Path: `/api/greetings`
-   - Response: `200 OK`
-     ```json
-     [
-       {
-         "id": "number",
-         "name": "string",
-         "greeting": "string",
-         "created_at": "timestamp"
-       }
-     ]
-     ```
+  - Method: `GET`
+  - Path: `/health`
+  - Response: `200 OK`
 
-#### MySQL Backup and Recovery
+- **Create Greeting**
+
+  - Method: `POST`
+  - Path: `/api/greetings`
+  - Content-Type: `application/json`
+  - Request Body:
+    ```json
+    {
+      "name": "string",
+      "greeting": "string"
+    }
+    ```
+  - Response: `201 Created`
+
+- **Get All Greetings**
+  - Method: `GET`
+  - Path: `/api/greetings`
+  - Response: `200 OK`
+
+#### C. MySQL Backup and Recovery
 
 1. Create database backup:
 
@@ -598,70 +776,88 @@ oc logs <frontend-pod-name>
 
 Remember: Using ClusterIP directly in the Nginx configuration is not recommended for production as it bypasses Kubernetes service discovery, but it can be useful for temporary troubleshooting.
 
+### .NET Backend Issues
+
+1. Port Configuration:
+
+   - Ensure `ASPNETCORE_URLS` is set correctly in the deployment
+   - Default port should be 3010
+   - Check for port conflicts with other services
+
+2. Database Connection:
+
+   - Verify connection string format in secret
+   - Check network policy allows connection to MySQL
+   - Ensure Entity Framework migrations are applied
+
+3. Common Issues:
+
+```bash
+# Check .NET backend logs
+oc logs deployment/greeting-backend-dotnet
+
+# Check environment variables
+oc set env deployment/greeting-backend-dotnet --list
+
+# Verify network policy
+oc get networkpolicy greeting-backend-dotnet-network-policy -o yaml
+
+# Test database connection from pod
+oc exec deployment/greeting-backend-dotnet -- curl -v http://mysql-greetings:3306
+```
+
+4. Architecture Issues:
+   - Ensure Docker builds target linux/amd64 platform
+   - Use buildx for cross-platform builds
+   - Verify base image compatibility
+
+### Network Policy Configuration
+
+1. Frontend to Backend Communication:
+
+   - Frontend must have egress rules to both backends
+   - Backend services must have ingress rules from frontend
+   - Verify port numbers (3001 for Node.js, 3010 for .NET)
+
+2. Backend to Database Communication:
+   - Both backends need egress rules to MySQL (port 3306)
+   - MySQL needs ingress rules from both backends
+
+Example network policy verification:
+
+```bash
+# Check frontend network policy
+oc get networkpolicy frontend-network-policy -o yaml
+
+# Check Node.js backend network policy
+oc get networkpolicy greeting-backend-allow-same-namespace -o yaml
+
+# Check .NET backend network policy
+oc get networkpolicy greeting-backend-dotnet-network-policy -o yaml
+
+# Check MySQL network policy
+oc get networkpolicy mysql-greetings-network-policy -o yaml
+```
+
+### Date Format Handling
+
+1. Frontend Considerations:
+
+   - Handles both Node.js and .NET date formats
+   - Uses ISO 8601 format for consistency
+   - Implements proper date parsing and display
+
+2. Backend Date Formats:
+   - Node.js: Native JavaScript Date objects
+   - .NET: ISO 8601 format with Entity Framework
+   - MySQL: TIMESTAMP data type
+
 ## Environment Variables
 
 ### Frontend
 
 - `REACT_APP_API_URL`: Backend API URL
 - `PORT`: Frontend service port (default: 3000)
-
-## Troubleshooting Guide
-
-### Frontend Nginx Proxy Issues
-
-If you encounter issues with the frontend pod unable to connect to the backend service, particularly with DNS resolution errors like "host not found in upstream", follow these troubleshooting steps:
-
-1. Check Pod Status and Logs:
-
-```bash
-# Get frontend pod status
-oc get pods | grep frontend
-
-# Check pod logs for specific errors
-oc logs <frontend-pod-name>
-```
-
-2. DNS Resolution Issues:
-
-   - If you see errors like "host not found in upstream 'greeting-backend'", this indicates DNS resolution problems
-   - Try these solutions in order:
-
-   a. Use Full DNS Name:
-
-   ```nginx
-   location /api/ {
-       resolver 10.96.0.10 valid=10s;
-       proxy_pass http://greeting-backend.5b7aa5-dev.svc.cluster.local:3001;
-   }
-   ```
-
-   b. Use Service ClusterIP (temporary solution):
-
-   ```nginx
-   location /api/ {
-       proxy_pass http://<service-cluster-ip>:3001;
-   }
-   ```
-
-3. Test Backend Connectivity:
-
-   - Test the connection from within the frontend pod:
-
-   ```bash
-   # Test API endpoint through Nginx
-   oc exec <frontend-pod-name> -- curl -v http://localhost:8080/api/greetings
-
-   # Get backend service details
-   oc get svc greeting-backend
-   ```
-
-4. Common Solutions:
-   - Verify the backend service exists and has endpoints
-   - Check network policies allow communication between frontend and backend
-   - Ensure the backend service port matches the proxy_pass port
-   - Verify the backend service is in the same namespace
-
-Remember: Using ClusterIP directly in the Nginx configuration is not recommended for production as it bypasses Kubernetes service discovery, but it can be useful for temporary troubleshooting.
 
 ## Security Considerations
 
@@ -1004,3 +1200,248 @@ oc logs deployment/greeting-backend
 # Test the application
 curl -v https://$(oc get route frontend -o jsonpath='{.spec.host}')/api/greetings
 ```
+
+### 3a. Deploy .NET Entity API Backend (Alternative)
+
+#### A. Build and Push Image
+
+```bash
+# Build .NET backend
+docker buildx build --platform linux/amd64 -f Dockerfile.backendDotNetEntity -t backend-dotnet:latest .
+docker tag backend-dotnet:latest image-registry.apps.silver.devops.gov.bc.ca/5b7aa5-dev/greeting-backend-dotnet:latest
+docker push image-registry.apps.silver.devops.gov.bc.ca/5b7aa5-dev/greeting-backend-dotnet:latest
+```
+
+#### B. Deploy Resources
+
+```bash
+# Apply .NET backend configurations
+oc apply -f k8s/backendDotNetEntity/manifests/
+
+# Verify deployment
+oc get pods,svc,route -l app=greeting-backend-dotnet
+```
+
+#### C. Environment Variables
+
+The .NET backend service uses the following environment variables from the `mysql-greetings-secret`:
+
+- `DB_HOSTNAME`: MySQL host (from mysql-greetings-secret)
+- `DB_USER`: Database user (from mysql-greetings-secret)
+- `DB_PASSWORD`: Database password (from mysql-greetings-secret)
+- `DB_NAME`: Database name (from mysql-greetings-secret)
+- `ASPNETCORE_URLS`: Backend service URL (default: http://+:3010)
+
+#### D. API Endpoints
+
+The .NET backend service exposes the following REST endpoints:
+
+1. **Create Greeting**
+
+   - Method: `POST`
+   - Path: `/api/greetings`
+   - Content-Type: `application/json`
+   - Request Body:
+     ```json
+     {
+       "name": "string",
+       "greeting": "string"
+     }
+     ```
+   - Response: `201 Created`
+     ```json
+     {
+       "id": "number",
+       "name": "string",
+       "greeting": "string",
+       "created_at": "timestamp"
+     }
+     ```
+
+2. **Get All Greetings**
+   - Method: `GET`
+   - Path: `/api/greetings`
+   - Response: `200 OK`
+     ```json
+     [
+       {
+         "id": "number",
+         "name": "string",
+         "greeting": "string",
+         "created_at": "timestamp"
+       }
+     ]
+     ```
+
+#### E. Testing and Verification
+
+1. Check deployment status:
+
+```bash
+# Get pod status
+oc get pods -l app=greeting-backend-dotnet
+
+# Check logs
+oc logs -l app=greeting-backend-dotnet
+```
+
+2. Test API endpoints:
+
+```bash
+# Get the route URL
+BACKEND_URL=$(oc get route greeting-backend-dotnet -o jsonpath='{.spec.host}')
+
+# Test GET endpoint
+curl -v https://$BACKEND_URL/api/greetings
+
+# Test POST endpoint
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"name":"Test User","greeting":"Hello from .NET!"}' \
+  https://$BACKEND_URL/api/greetings
+```
+
+#### F. Troubleshooting
+
+1. Database Connection Issues:
+
+```bash
+# Check secret values
+oc describe secret mysql-greetings-secret
+
+# Verify MySQL service
+oc get service mysql-greetings
+
+# Test MySQL connection from pod
+oc exec -it $(oc get pod -l app=greeting-backend-dotnet -o jsonpath='{.items[0].metadata.name}') -- curl mysql-greetings:3306
+```
+
+2. Pod Issues:
+
+```bash
+# Check pod events
+oc describe pod -l app=greeting-backend-dotnet
+
+# Check detailed logs
+oc logs -l app=greeting-backend-dotnet --previous
+
+# Restart deployment if needed
+oc rollout restart deployment/greeting-backend-dotnet
+```
+
+3. Common Solutions:
+   - Verify all secret values are correct
+   - Check network policies allow communication
+   - Ensure MySQL service is running
+   - Verify the database exists and is accessible
+
+### DNS Resolution and Service IP Issues
+
+1. **Identifying DNS Issues**:
+
+```bash
+# Check if DNS resolution is working
+oc exec frontend-pod -- nslookup greeting-backend
+oc exec frontend-pod -- nslookup greeting-backend-dotnet
+oc exec frontend-pod -- nslookup mysql-greetings
+
+# If DNS fails, get service IPs
+oc get svc -o custom-columns=NAME:.metadata.name,IP:.spec.clusterIP,PORT:.spec.ports[*].port
+```
+
+2. **Updating Service References**:
+
+a. Get current service IPs:
+
+```bash
+# Store service IPs in variables
+NODE_BACKEND_IP=$(oc get svc greeting-backend -o jsonpath='{.spec.clusterIP}')
+DOTNET_BACKEND_IP=$(oc get svc greeting-backend-dotnet -o jsonpath='{.spec.clusterIP}')
+MYSQL_IP=$(oc get svc mysql-greetings -o jsonpath='{.spec.clusterIP}')
+
+# Display all IPs
+echo "Node.js Backend IP: $NODE_BACKEND_IP"
+echo ".NET Backend IP: $DOTNET_BACKEND_IP"
+echo "MySQL IP: $MYSQL_IP"
+```
+
+b. Update ConfigMap for Nginx:
+
+```bash
+# Create new ConfigMap with updated IPs
+cat <<EOF | oc apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  nginx.conf: |
+    location /api/ {
+        proxy_pass http://${NODE_BACKEND_IP}:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+    }
+    location /api-dotnet/ {
+        proxy_pass http://${DOTNET_BACKEND_IP}:3010;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+    }
+EOF
+```
+
+3. **Testing Service Connectivity**:
+
+```bash
+# Test Node.js backend connectivity
+oc exec frontend-pod -- curl -v http://${NODE_BACKEND_IP}:3001/api/greetings
+
+# Test .NET backend connectivity
+oc exec frontend-pod -- curl -v http://${DOTNET_BACKEND_IP}:3010/api/greetings
+
+# Test MySQL connectivity
+oc exec backend-pod -- nc -zv ${MYSQL_IP} 3306
+```
+
+4. **Updating Backend Configurations**:
+
+a. Update Node.js backend secret:
+
+```bash
+oc patch secret backend-config -p "{\"data\":{\"DB_HOST\": \"$(echo -n ${MYSQL_IP} | base64)\"}}"
+```
+
+b. Update .NET backend secret:
+
+```bash
+# Create connection string with MySQL IP
+CONNECTION_STRING="Server=${MYSQL_IP};Port=3306;Database=greeting_db;User=greetinguser;Password=greetingpass"
+oc patch secret dotnet-backend-config -p "{\"data\":{\"ConnectionStrings__DefaultConnection\": \"$(echo -n ${CONNECTION_STRING} | base64)\"}}"
+```
+
+5. **Verifying Updates**:
+
+```bash
+# Restart pods to pick up new configurations
+oc rollout restart deployment/frontend
+oc rollout restart deployment/greeting-backend
+oc rollout restart deployment/greeting-backend-dotnet
+
+# Watch pod status
+oc get pods -w
+
+# Check logs for connection issues
+oc logs -f deployment/frontend
+oc logs -f deployment/greeting-backend
+oc logs -f deployment/greeting-backend-dotnet
+```
+
+6. **Maintenance Notes**:
+
+- Service IPs may change when:
+  - Services are recreated
+  - The cluster is restarted
+  - Network policies are updated
+- Always verify service IPs after cluster maintenance
+- Consider creating a maintenance script to update configurations
+- Document current service IPs in team documentation

@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: greeting-backend-dotnet-network-policy
+  labels:
+    app: greeting-backend-dotnet
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/name: greeting-backend-dotnet
+    app.kubernetes.io/part-of: greeting-app
+    app.kubernetes.io/runtime: dotnet
+spec:
+  podSelector:
+    matchLabels:
+      app: greeting-backend-dotnet
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: 5b7aa5-dev
+          podSelector:
+            matchLabels:
+              app: frontend
+      ports:
+        - protocol: TCP
+          port: 3010
+    - from: []
+      ports: []
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: mysql-greetings
+      ports:
+        - protocol: TCP
+          port: 3306
+    - to: []
+      ports: []

@@ -1,5 +1,6 @@
 export interface Config {
-  apiUrl: string;
+  nodejsApiUrl: string;
+  dotnetApiUrl: string;
   apiTimeout: number;
   apiRetries: number;
 }
@@ -11,12 +12,14 @@ export interface AppConfig {
 
 const config: AppConfig = {
   development: {
-    apiUrl: "/api",
+    nodejsApiUrl: "/api-nodejs",
+    dotnetApiUrl: "/api-dotnet",
     apiTimeout: 5000,
     apiRetries: 3
   },
   production: {
-    apiUrl: "/api",
+    nodejsApiUrl: "/api-nodejs",
+    dotnetApiUrl: "/api-dotnet",
     apiTimeout: 10000,
     apiRetries: 3
   }

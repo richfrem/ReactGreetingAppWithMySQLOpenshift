@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-network-policy
+  namespace: 5b7aa5-dev
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              environment: dev
+      ports:
+        - port: 8080
+          protocol: TCP
+  egress:
+    - ports:
+        - port: 443
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+    - ports:
+        - port: 3001
+          protocol: TCP
+      to:
+        - podSelector:
+            matchLabels:
+              app: greeting-backend
+        - namespaceSelector:
+            matchLabels:
+              name: 5b7aa5-dev
+    - ports:
+        - port: 3010
+          protocol: TCP
+      to:
+        - podSelector:
+            matchLabels:
+              app: greeting-backend-dotnet
+        - namespaceSelector:
+            matchLabels:
+              name: 5b7aa5-dev

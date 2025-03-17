@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: greeting-backend-dotnet
+  labels:
+    app: greeting-backend-dotnet
+    app.kubernetes.io/name: greeting-backend-dotnet
+    app.kubernetes.io/part-of: greeting-app
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/runtime: dotnet
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: greeting-backend-dotnet
+      app.kubernetes.io/name: greeting-backend-dotnet
+      app.kubernetes.io/part-of: greeting-app
+  template:
+    metadata:
+      labels:
+        app: greeting-backend-dotnet
+        app.kubernetes.io/name: greeting-backend-dotnet
+        app.kubernetes.io/part-of: greeting-app
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/runtime: dotnet
+    spec:
+      containers:
+        - name: greeting-backend-dotnet
+          image: image-registry.apps.silver.devops.gov.bc.ca/5b7aa5-dev/greeting-backend-dotnet:latest
+          ports:
+            - containerPort: 3010
+          env:
+            - name: ASPNETCORE_URLS
+              value: "http://+:3010"
+            - name: DB_HOSTNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-greetings-secret
+                  key: DB_HOST_IP
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-greetings-secret
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-greetings-secret
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-greetings-secret
+                  key: DB_PASSWORD
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
